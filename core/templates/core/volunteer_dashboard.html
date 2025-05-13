@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Volunteer Dashboard</title>
+</head>
+<body>
+    <h1>Welcome to the Volunteer Dashboard</h1>
+
+        <form method="POST">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Search Patient</button>
+        </form>
+
+        {% if match %}
+            <hr>
+            <h3>Match Found:</h3>
+            <p>{{ match.first_name }} {{ match.last_name }} ({{ match.date_of_birth }})</p>
+            <form method="POST" action="{% url 'check_in_patient' match.id %}">
+                {% csrf_token %}
+                <button type="submit">Check-in Patient</button>
+            </form>
+        {% endif %}
+
+</body>
+</html>
