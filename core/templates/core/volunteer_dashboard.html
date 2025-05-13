@@ -14,12 +14,17 @@
 
         {% if match %}
             <hr>
-            <h3>Match Found:</h3>
-            <p>{{ match.first_name }} {{ match.last_name }} ({{ match.date_of_birth }})</p>
+            <h3>Potential Match Found ({{ score }}%):</h3>
+            <p>{{ match.first_name }} {{ match.last_name }} (DOB: {{ match.date_of_birth }})</p>
             <form method="POST" action="{% url 'check_in_patient' match.id %}">
                 {% csrf_token %}
                 <button type="submit">Check-in Patient</button>
             </form>
+        {% else %}
+            {% if form.cleaned_data %}
+                <hr>
+                <p>No close match found. Would you like to <a href="{% url 'create_patient' %}">create a new patient</a>?</p>
+            {% endif %}
         {% endif %}
 
 </body>
