@@ -6,38 +6,67 @@ from rapidfuzz import fuzz
 
 def volunteer_dashboard(request):
     form = PatientSearchForm()
-    match = None
-    score = 0
+    matches = []
 
     if request.method == 'POST':
         form = PatientSearchForm(request.POST)
         if form.is_valid():
             fname = form.cleaned_data['first_name'].strip().lower()
             lname = form.cleaned_data['last_name'].strip().lower()
-            dob = form.cleaned_data['date_of_birth']
 
-            candidates = Patient.objects.filter(date_of_birth=dob)
-            best_score = 0
-            best_match = None
-
+            candidates = Patient.objects.all()
+            threshold = 70  # you can tweak this
             for patient in candidates:
                 p_fname = patient.first_name.strip().lower()
                 p_lname = patient.last_name.strip().lower()
+                score = fuzz.ratio(fname + lname, p_fname + p_lname)
 
-                s = fuzz.ratio(fname + lname, p_fname + p_lname)
-                if s > best_score:
-                    best_score = s
-                    best_match = patient
+                if score >= threshold:
+                    matches.append((patient, score))
 
-            if best_score >= 85:
-                match = best_match
-                score = best_score
+            # Sort by best match score
+            matches.sort(key=lambda x: x[1], reverse=True)
+            matches = matches[:5] #limited to 5 potential matches.
+
+    return render(request, 'core/volunteer_dashboard.html', {
+        'form': form,
+        'matches': matches,
+    })
+
+# def volunteer_dashboard(request):
+#     form = PatientSearchForm()
+#     match = None
+#     score = 0
+
+#     if request.method == 'POST':
+#         form = PatientSearchForm(request.POST)
+#         if form.is_valid():
+#             fname = form.cleaned_data['first_name'].strip().lower()
+#             lname = form.cleaned_data['last_name'].strip().lower()
+
+#             candidates = Patient.objects.all()  # removed DOB filter
+#             best_score = 0
+#             best_match = None
+
+#             for patient in candidates:
+#                 p_fname = patient.first_name.strip().lower()
+#                 p_lname = patient.last_name.strip().lower()
+
+#                 s = fuzz.ratio(fname + lname, p_fname + p_lname)
+#                 if s > best_score:
+#                     best_score = s
+#                     best_match = patient
+
+#             if best_score >= 75:
+#                 match = best_match
+#                 score = best_score
 
     return render(request, 'core/volunteer_dashboard.html', {
         'form': form,
         'match': match,
         'score': score,
     })
+
 
 
 

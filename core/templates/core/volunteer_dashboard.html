@@ -11,11 +11,31 @@
             {{ form.as_p }}
             <button type="submit">Search Patient</button>
         </form>
+        {% if matches %}
+            <hr>
+            <h3>Potential Matches:</h3>
+            <ul>
+                {% for patient, score in matches %}
+                    <li>
+                        {{ patient.first_name }} {{ patient.last_name }} (DOB: {{ patient.date_of_birth|date:"M. j, Y" }}) – {{ score }}%
+                        <form method="POST" action="{% url 'check_in_patient' patient.id %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit">Check-in</button>
+                        </form>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            {% if form.cleaned_data %}
+                <hr>
+                <p>No close matches found. Would you like to <a href="{% url 'create_patient' %}">create a new patient</a>?</p>
+            {% endif %}
+        {% endif %}
 
-        {% if match %}
+        <!-- {% if match %}
             <hr>
             <h3>Potential Match Found ({{ score }}%):</h3>
-            <p>{{ match.first_name }} {{ match.last_name }} (DOB: {{ match.date_of_birth }})</p>
+            <p>{{ match.first_name }} {{ match.last_name }} (DOB: {{ match.date_of_birth|date:"M. j, Y" }})</p>
             <form method="POST" action="{% url 'check_in_patient' match.id %}">
                 {% csrf_token %}
                 <button type="submit">Check-in Patient</button>
@@ -25,7 +45,6 @@
                 <hr>
                 <p>No close match found. Would you like to <a href="{% url 'create_patient' %}">create a new patient</a>?</p>
             {% endif %}
-        {% endif %}
-
+        {% endif %} -->
 </body>
 </html>
