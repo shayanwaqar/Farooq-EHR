@@ -1,8 +1,14 @@
 from datetime import date
+import math
 from django.shortcuts import render, redirect
 from .models import Patient, Visit
 from .forms import PatientSearchForm
 from rapidfuzz import fuzz
+from django.shortcuts import redirect, get_object_or_404
+from django.http import HttpResponse
+from django import forms
+from django.views.decorators.http import require_POST
+
 
 def volunteer_dashboard(request):
     form = PatientSearchForm()
@@ -20,6 +26,7 @@ def volunteer_dashboard(request):
                 p_fname = patient.first_name.strip().lower()
                 p_lname = patient.last_name.strip().lower()
                 score = fuzz.ratio(fname + lname, p_fname + p_lname)
+                score = round(score)
 
                 if score >= threshold:
                     matches.append((patient, score))
@@ -27,52 +34,16 @@ def volunteer_dashboard(request):
             # Sort by best match score
             matches.sort(key=lambda x: x[1], reverse=True)
             matches = matches[:5] #limited to 5 potential matches.
+    
+    today = date.today()
+    queue = Visit.objects.filter(date=today, in_queue=True).select_related('patient')
 
     return render(request, 'core/volunteer_dashboard.html', {
         'form': form,
         'matches': matches,
+        'queue': queue,
     })
 
-# def volunteer_dashboard(request):
-#     form = PatientSearchForm()
-#     match = None
-#     score = 0
-
-#     if request.method == 'POST':
-#         form = PatientSearchForm(request.POST)
-#         if form.is_valid():
-#             fname = form.cleaned_data['first_name'].strip().lower()
-#             lname = form.cleaned_data['last_name'].strip().lower()
-
-#             candidates = Patient.objects.all()  # removed DOB filter
-#             best_score = 0
-#             best_match = None
-
-#             for patient in candidates:
-#                 p_fname = patient.first_name.strip().lower()
-#                 p_lname = patient.last_name.strip().lower()
-
-#                 s = fuzz.ratio(fname + lname, p_fname + p_lname)
-#                 if s > best_score:
-#                     best_score = s
-#                     best_match = patient
-
-#             if best_score >= 75:
-#                 match = best_match
-#                 score = best_score
-
-    return render(request, 'core/volunteer_dashboard.html', {
-        'form': form,
-        'match': match,
-        'score': score,
-    })
-
-
-
-
-####
-from django.http import HttpResponse
-from django import forms
 
 class NewPatientForm(forms.ModelForm):
     class Meta:
@@ -95,9 +66,28 @@ def create_patient(request):
 
 def check_in_patient(request, patient_id):
     if request.method == "POST":
-        patient = Patient.objects.get(id=patient_id)
-        Visit.objects.create(patient=patient, date=date.today())
-        return redirect('upload_visit_form', patient_id=patient.id)
-    
+        patient = get_object_or_404(Patient, id=patient_id)
+        today = date.today()
+
+        # Get or create today's visit
+        visit, created = Visit.objects.get_or_create(patient=patient, date=today)
+
+        # Ensure they're in the queue
+        visit.in_queue = True
+        visit.save()
+
+        return redirect('volunteer_dashboard')
+      
+
+@require_POST
+def remove_from_queue(request, visit_id):
+    visit = get_object_or_404(Visit, id=visit_id)
+    visit.in_queue = False
+    visit.save()
+    return redirect('volunteer_dashboard')
+
+
+
 def upload_visit_form(request, patient_id):
     return HttpResponse(f"Upload page for patient {patient_id}")
+

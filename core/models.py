@@ -17,6 +17,7 @@ class Visit(models.Model):
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='visits')
     date = models.DateField(auto_now_add=True)
     scanned_form = models.FileField(upload_to='scanned_forms/', blank=True, null=True)
+    in_queue = models.BooleanField(default=True)  # Indicates if patient is still waiting
 
     def __str__(self):
         return f"Visit on {self.date} for {self.patient}"
